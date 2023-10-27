@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Icon, LaunchProps, List, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Icon, LaunchProps, List, showToast, Toast, getPreferenceValues } from "@raycast/api";
 import { useEffect, useState } from "react";
 import { runAppleScript } from "run-applescript";
 import plist from "plist";
@@ -29,6 +29,11 @@ interface Arguments {
   name?: string;
 }
 
+interface Preferences {
+  displayShortcuts: boolean;
+  displayTriggers: boolean;
+}
+
 export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
   const [data, setData] = useState<TypeMacroGroup[]>();
   const [isLoading, setIsLoading] = useState(true);
@@ -44,6 +49,7 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
       const filteredData = data
         .filter(group => group.enabled)
         .map(group => {
+
           const macros = group.macros?.filter(macro => macro.enabled);
           return { ...group, macros };
         });
@@ -71,6 +77,15 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
 
   const [searchText, setSearchText] = useState(props.arguments.name ?? "");
   const [filteredList, filterList] = useState(data);
+  const preferences = getPreferenceValues<Preferences>();
+
+  const displayTypes: string[] = [];
+  if (preferences.displayTriggers) {
+    displayTypes.push("Typed String Trigger");
+  }
+  if (preferences.displayShortcuts) {
+    displayTypes.push("Hot Key Trigger");
+  }
 
   useEffect(() => {
     filterList(
@@ -85,30 +100,35 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
     <List isLoading={isLoading} searchText={searchText} onSearchTextChange={setSearchText}>
       {filteredList
         ?.map((group) => (
-          <List.Section key={group.uid} title={group.name}>
+          <List.Section key={group.uid} title={`${group.name}`} subtitle={`${group.macros?.length}`}>
             {group.macros
-              ?.map((macro) => (
-                <List.Item
-                  key={macro.uid}
-                  title={macro?.name ?? ""}
-                  actions={
-                    <ActionPanel>
-                      <Action.Open title="Run Macro" target={`kmtrigger://macro=${macro.uid}`} icon={Icon.Terminal} />
-                      <Action
-                        title="Edit Macro"
-                        onAction={() => {
-                          editMacro(macro);
-                        }}
-                        icon={Icon.Pencil}
-                        shortcut={{ key: "e", modifiers: ["cmd"] }}
-                      />
-                    </ActionPanel>
-                  }
-                />
-              ))}
+              ?.map((macro) => {
+                const triggers = macro.triggers
+                  ?.filter((trigger) => trigger.type && displayTypes.includes(trigger.type))
+                  .map((trigger) => ({ tag: { value: trigger.short } }));
+                return (
+                  <List.Item
+                    key={macro.uid}
+                    title={macro?.name ?? ""}
+                    accessories={ triggers }
+                    actions={
+                      <ActionPanel>
+                        <Action.Open title="Run Macro" target={`kmtrigger://macro=${macro.uid}`} icon={Icon.Terminal} />
+                        <Action
+                          title="Edit Macro"
+                          onAction={() => {
+                            editMacro(macro);
+                          }}
+                          icon={Icon.Pencil}
+                          shortcut={{ key: "e", modifiers: ["cmd"] }}
+                        />
+                      </ActionPanel>
+                    }
+                  />
+                )
+              })}
           </List.Section>
         ))}
-
     </List>
   );
 }

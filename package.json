@@ -26,6 +26,25 @@
       ]
     }
   ],
+  "preferences": [
+    {
+      "name": "displayShortcuts",
+      "description": "Do you want to display macro shortcuts?",
+      "type": "checkbox",
+      "required": true,
+      "title": "Display Details",
+      "label": "Shortcuts",
+      "default": false
+    },
+    {
+      "name": "displayTriggers",
+      "description": "Do you want to display macro text triggers?",
+      "type": "checkbox",
+      "required": true,
+      "label": "Text Triggers",
+      "default": false
+    }
+  ],
   "dependencies": {
     "@raycast/api": "^1.53.0",
     "plist": "^3.0.4",
