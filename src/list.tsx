@@ -32,11 +32,14 @@ interface Arguments {
 interface Preferences {
   displayShortcuts: boolean;
   displayTriggers: boolean;
+  filterPattern: string;
+  useRegex: boolean;
 }
 
 export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
   const [data, setData] = useState<TypeMacroGroup[]>();
   const [isLoading, setIsLoading] = useState(true);
+  const preferences = getPreferenceValues<Preferences>();
 
   async function init() {
     try {
@@ -45,15 +48,33 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
           end tell`);
       const data = plist.parse(scriptResult) as TypeMacroGroup[];
 
+      // Filtering groups with filter pattern and enabled groups      
+      const filterPattern = preferences.filterPattern.trim();
+      let hasFilter = filterPattern !== '';
+      let matchFunction: (groupName: string) => boolean;
+
+      if (hasFilter) {
+          if (filterPattern.startsWith('"') && filterPattern.endsWith('"')) {
+              const exactMatch = filterPattern.slice(1, -1).toLowerCase();
+              matchFunction = (groupName) => groupName.toLowerCase() === exactMatch;
+          } else if (preferences.useRegex) {
+              const regexPattern = new RegExp(filterPattern, 'i');
+              matchFunction = (groupName) => regexPattern.test(groupName);
+          } else {
+              const partialMatch = filterPattern.toLowerCase();
+              matchFunction = (groupName) => groupName.toLowerCase().includes(partialMatch);
+          }
+      } else {
+          matchFunction = () => true;
+      }
+
       // Filtering groups with enabled macros
       const filteredData = data
-        .filter(group => group.enabled)
+        .filter(group => group.enabled && group.name && matchFunction(group.name))
         .map(group => {
-
           const macros = group.macros?.filter(macro => macro.enabled);
           return { ...group, macros };
         });
-
       setData(filteredData);
     } catch {
       showToast({ style: Toast.Style.Failure, title: "Error", message: "Unable to list Macros" });
@@ -77,7 +98,6 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
 
   const [searchText, setSearchText] = useState(props.arguments.name ?? "");
   const [filteredList, filterList] = useState(data);
-  const preferences = getPreferenceValues<Preferences>();
 
   const displayTypes: string[] = [];
   if (preferences.displayTriggers) {
