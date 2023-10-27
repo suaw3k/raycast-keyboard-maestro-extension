@@ -39,7 +39,16 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
           set macroList to getmacros with asstring
           end tell`);
       const data = plist.parse(scriptResult) as TypeMacroGroup[];
-      setData(data);
+
+      // Filtering groups with enabled macros
+      const filteredData = data
+        .filter(group => group.enabled)
+        .map(group => {
+          const macros = group.macros?.filter(macro => macro.enabled);
+          return { ...group, macros };
+        });
+
+      setData(filteredData);
     } catch {
       showToast({ style: Toast.Style.Failure, title: "Error", message: "Unable to list Macros" });
     } finally {
@@ -75,15 +84,12 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
   return (
     <List isLoading={isLoading} searchText={searchText} onSearchTextChange={setSearchText}>
       {filteredList
-        ?.filter((o) => o.enabled)
-        .map((group) => (
-          <List.Section id={group.uid} title={group.name}>
+        ?.map((group) => (
+          <List.Section key={group.uid} title={group.name}>
             {group.macros
-              ?.filter((o) => o.enabled)
-              .map((macro) => (
+              ?.map((macro) => (
                 <List.Item
                   key={macro.uid}
-                  id={macro.uid}
                   title={macro?.name ?? ""}
                   actions={
                     <ActionPanel>
@@ -102,6 +108,7 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
               ))}
           </List.Section>
         ))}
+
     </List>
   );
 }

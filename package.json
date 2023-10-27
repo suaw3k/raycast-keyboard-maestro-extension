@@ -5,6 +5,9 @@
   "description": "List and quickly trigger Keyboard Maestro Macros, bringing the \"Trigger Macro by Name\" action directly into Raycast",
   "icon": "icon.png",
   "author": "eluce2",
+  "contributors": [
+    "suaw3k"
+  ],
   "license": "MIT",
   "commands": [
     {
