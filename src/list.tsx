@@ -58,7 +58,11 @@ export default function Command(props: LaunchProps<{ arguments: Arguments }>) {
               const exactMatch = filterPattern.slice(1, -1).toLowerCase();
               matchFunction = (groupName) => groupName.toLowerCase() === exactMatch;
           } else if (preferences.useRegex) {
-              const regexPattern = new RegExp(filterPattern, 'i');
+              let regexPattern: RegExp;
+              try { regexPattern = new RegExp(filterPattern, 'i') } catch (e) {
+                  showToast({ style: Toast.Style.Failure, title: "Error", message: "Invalid regular expression" });
+                  return;
+              }
               matchFunction = (groupName) => regexPattern.test(groupName);
           } else {
               const partialMatch = filterPattern.toLowerCase();
